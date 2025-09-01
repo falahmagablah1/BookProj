@@ -1,0 +1,87 @@
+﻿@model WebApplication1.Models.Author
+@{
+    ViewData["Title"] = "Author Details";
+}
+<div class="container p-3">
+    <div class="row pt-4">
+        <div class="col-12">
+            <h2 class="text-primary">Author Details</h2>
+            <hr />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>@Model.AuthorName</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Email:</strong> @Model.AuthorEmail</p>
+                            <p><strong>Phone:</strong> @Model.AuthorPhone</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Age:</strong> @Model.AuthorAge</p>
+                            <p><strong>Books Count:</strong> @(Model.Books?.Count ?? 0)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.Books != null && Model.Books.Any())
+            {
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5>Books by this Author</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @foreach (var book in Model.Books)
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">@book.Name</h6>
+                                            <p class="card-text">
+                                                <small class="text-muted">Category: @book.Category?.Name</small><br>
+                                                <small class="text-muted">Created: @book.TimeCreated.ToString("dd/MM/yyyy")</small>
+                                            </p>
+                                            <a asp-controller="Items" asp-action="Details" asp-route-id="@book.Id" class="btn btn-sm btn-outline-primary">
+                                                View Details
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5>Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-controller="Author" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> Edit Author
+                        </a>
+                        <a asp-controller="Author" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">
+                            <i class="bi bi-trash"></i> Delete Author
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-12">
+            <a asp-controller="Author" asp-action="Index" class="btn btn-secondary">
+                Back to Authors
+            </a>
+        </div>
+    </div>
+</div>

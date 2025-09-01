@@ -1,0 +1,48 @@
+﻿@model WebApplication1.Models.Category
+@{
+    ViewData["Title"] = "Delete Category";
+}
+<div class="container p-3">
+    <div class="border p-3 mt-4">
+        <div class="row pb-2">
+            <h2 class="text-primary">Delete Category</h2>
+            <hr />
+        </div>
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading">Warning!</h4>
+            <p>Are you sure you want to delete this category?</p>
+            @if (Model.Items != null && Model.Items.Any())
+            {
+                <p class="mb-0"><strong>Note:</strong> This category has @Model.Items.Count item(s) associated. Deleting this category may affect the item records.</p>
+            }
+        </div>
+        <div class="mb-3">
+            <label class="form-label"><strong>Category Name:</strong></label>
+            <p>@Model.Name</p>
+        </div>
+        @if (Model.Items != null && Model.Items.Any())
+        {
+            <div class="mb-3">
+                <h5>Items in this Category:</h5>
+                <ul class="list-group">
+                    @foreach (var item in Model.Items)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @item.Name
+                            <span class="badge bg-info rounded-pill">@item.Author?.AuthorName</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        <br />
+        <hr />
+        <form method="post" asp-controller="Category" asp-action="Delete">
+            <input asp-for="Id" hidden />
+            <button type="submit" class="btn btn-danger" style="width:150px">Delete</button>
+            <a asp-action="Index" asp-controller="Category" class="btn btn-secondary" style="width:150px">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,56 @@
+﻿@model WebApplication1.ViewModels.ItemVM
+@{
+    ViewData["Title"] = "Edit Book";
+}
+<div class="container p-3">
+    <form method="post" enctype="multipart/form-data" asp-controller="Items" asp-action="Edit">
+        <div class="border p-3 mt-4">
+            <div class="row pb-2">
+                <h2 class="text-primary">Edit Book</h2>
+                <hr />
+            </div>
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="CategoryId" class="form-label"></label>
+                <select asp-for="CategoryId" class="form-control" asp-items="@ViewBag.CategoryList">
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="AuthorId" class="form-label"></label>
+                <select asp-for="AuthorId" class="form-control" asp-items="@ViewBag.AuthorList">
+                </select>
+                <span asp-validation-for="AuthorId" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PdfFile" class="form-label"></label>
+                <input asp-for="PdfFile" type="file" class="form-control" accept=".pdf" />
+                <div class="form-text">
+                    Upload new PDF file to replace the current one (optional)
+                    @if (!string.IsNullOrEmpty(Model.PdfPath))
+                    {
+                        <br><small class="text-info">Current file: <a href="@Model.PdfPath" target="_blank">View Current PDF</a></small>
+                    }
+                </div>
+                <span asp-validation-for="PdfFile" class="text-danger"></span>
+            </div>
+            <br />
+            <hr />
+            <button type="submit" class="btn btn-primary" style="width:150px">Update</button>
+            <a asp-action="Index" class="btn btn-secondary" style="width:150px">
+                Back to Books
+            </a>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

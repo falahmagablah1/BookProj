@@ -1,0 +1,529 @@
+﻿@model IEnumerable<WebApplication1.Models.Author>
+@{
+    ViewData["Title"] = "Authors";
+    var canEdit = User.IsInRole("Editor") || User.IsInRole("Admin");
+    var canDelete = User.IsInRole("Admin");
+}
+
+<div class="container p-3">
+    <div class="row pt-4">
+        <div class="col-6">
+            <h2 class="text-primary">Authors</h2>
+        </div>
+        <div class="col-6 text-end">
+            @if (canEdit)
+            {
+                <a asp-controller="Author" asp-action="New" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> &nbsp; Add New Author
+                </a>
+            }
+        </div>
+    </div>
+
+    @if (TempData["successData"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["successData"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            <button type="button" class="btn btn-outline-primary" id="toggleFeaturesBtn">
+                <i class="bi bi-sliders"></i> Enable Advanced Features
+            </button>
+        </div>
+    </div>
+
+    <div id="advancedFeatures" style="display: none;">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-2">
+                        <div class="row align-items-center">
+                            <div class="col-lg-4 col-md-6 mb-2">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-info active" type="button" data-filter="all">
+                                        <i class="bi bi-people"></i> All
+                                    </button>
+                                    <button class="btn btn-outline-success" type="button" data-filter="with-books">
+                                        <i class="bi bi-journal-check"></i> With Books
+                                    </button>
+                                    <button class="btn btn-outline-warning" type="button" data-filter="without-books">
+                                        <i class="bi bi-person-x"></i> No Books
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-6 mb-2">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-sort-down"></i></span>
+                                    <select class="form-select" id="sortSelect">
+                                        <option value="name-asc">Name A-Z</option>
+                                        <option value="name-desc">Name Z-A</option>
+                                        <option value="books-desc">Most Books</option>
+                                        <option value="books-asc">Least Books</option>
+                                        <option value="age-asc">Youngest</option>
+                                        <option value="age-desc">Oldest</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4 col-md-12 mb-2">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Search authors...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-12">
+                <div id="authorCount" class="text-muted">
+                    Total Authors: <span class="fw-bold">@Model.Count()</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div id="loadingSpinner" class="text-center my-4" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading authors...</p>
+    </div>
+
+    <table class="table table-bordered table-striped table-hover" id="authorsTable">
+        <thead class="table-dark">
+            <tr>
+                <th>Author Name</th>
+                <th>Email</th>
+                <th class="d-none d-md-table-cell">Phone</th>
+                <th class="d-none d-lg-table-cell">Age</th>
+                <th>Books Count</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="authorsTableBody">
+            @foreach (var author in Model)
+            {
+                <tr data-author-id="@author.Id" class="author-row" data-books-count="@(author.Books?.Count ?? 0)">
+                    <td class="author-name">
+                        <strong>@author.AuthorName</strong>
+                    </td>
+                    <td class="author-email">@author.AuthorEmail</td>
+                    <td class="author-phone d-none d-md-table-cell">@author.AuthorPhone</td>
+                    <td class="author-age d-none d-lg-table-cell">@author.AuthorAge</td>
+                    <td class="books-count">
+                        @if ((author.Books?.Count ?? 0) > 0)
+                        {
+                            <span class="badge bg-success">@(author.Books?.Count ?? 0)</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">0</span>
+                        }
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="showAuthorDetailsModal(@author.Id)" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+
+                        @if (canEdit)
+                        {
+                            <a asp-controller="Author" asp-action="Edit" asp-route-id="@author.Id" class="btn btn-sm btn-success" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        }
+
+                        @if (canDelete)
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteAuthor(@author.Id)" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Author Details Modal -->
+    <div class="modal fade" id="authorDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-circle"></i> Author Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="authorDetailsContent">
+                    <!-- سيتم تحميل المحتوى هنا -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @Html.AntiForgeryToken()
+    
+    <script>
+        // بيانات المؤلفين الأولية
+        let authorsData = [
+            @foreach (var author in Model)
+            {
+                <text>{
+                    Id: @author.Id,
+                    AuthorName: "@Html.Raw(author.AuthorName?.Replace("\"", "\\\""))",
+                    AuthorEmail: "@Html.Raw(author.AuthorEmail?.Replace("\"", "\\\""))",
+                    AuthorPhone: "@Html.Raw(author.AuthorPhone?.Replace("\"", "\\\""))",
+                    AuthorAge: @author.AuthorAge,
+                    BooksCount: @(author.Books?.Count ?? 0)
+                },</text>
+            }
+        ];
+
+        let featuresEnabled = false;
+        let originalTableContent = '';
+        const canEdit = @canEdit.ToString().ToLower();
+        const canDelete = @canDelete.ToString().ToLower();
+
+        // تهيئة الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            originalTableContent = document.getElementById('authorsTableBody')?.innerHTML || '';
+            initializeEventListeners();
+        });
+
+        // إعداد Event Listeners
+        function initializeEventListeners() {
+            // زر الميزات المتقدمة
+            document.getElementById('toggleFeaturesBtn')?.addEventListener('click', toggleAdvancedFeatures);
+            
+            // أزرار الفلتر
+            document.querySelectorAll('[data-filter]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (!featuresEnabled) return;
+                    
+                    const filter = this.getAttribute('data-filter');
+                    setActiveFilterButton(this);
+                    applyFilter(filter);
+                });
+            });
+            
+            // الترتيب
+            document.getElementById('sortSelect')?.addEventListener('change', function() {
+                if (!featuresEnabled) return;
+                applySorting(this.value);
+            });
+            
+            // البحث
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', debounce(function() {
+                    if (!featuresEnabled) return;
+                    applySearch(this.value);
+                }, 300));
+            }
+        }
+
+        // تبديل الميزات المتقدمة
+        function toggleAdvancedFeatures() {
+            const featuresDiv = document.getElementById('advancedFeatures');
+            const toggleBtn = document.getElementById('toggleFeaturesBtn');
+
+            if (!featuresDiv || !toggleBtn) return;
+
+            if (featuresEnabled) {
+                featuresDiv.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="bi bi-sliders"></i> Enable Advanced Features';
+                toggleBtn.className = 'btn btn-outline-primary';
+                resetToOriginal();
+                featuresEnabled = false;
+            } else {
+                featuresDiv.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="bi bi-x-circle"></i> Disable Advanced Features';
+                toggleBtn.className = 'btn btn-outline-danger';
+                featuresEnabled = true;
+                updateAuthorCount(authorsData.length);
+            }
+        }
+
+        // إعادة تعيين للحالة الأصلية
+        function resetToOriginal() {
+            const tableBody = document.getElementById('authorsTableBody');
+            if (tableBody && originalTableContent) {
+                tableBody.innerHTML = originalTableContent;
+            }
+            
+            // إعادة تعيين النماذج
+            const searchInput = document.getElementById('searchInput');
+            const sortSelect = document.getElementById('sortSelect');
+            
+            if (searchInput) searchInput.value = '';
+            if (sortSelect) sortSelect.value = 'name-asc';
+            
+            // تعيين الزر الأول كنشط
+            const firstFilterBtn = document.querySelector('[data-filter="all"]');
+            if (firstFilterBtn) setActiveFilterButton(firstFilterBtn);
+        }
+
+        // تطبيق الفلتر
+        function applyFilter(filter) {
+            let filteredData;
+            
+            switch(filter) {
+                case 'all':
+                    filteredData = authorsData;
+                    break;
+                case 'with-books':
+                    filteredData = authorsData.filter(a => a.BooksCount > 0);
+                    break;
+                case 'without-books':
+                    filteredData = authorsData.filter(a => a.BooksCount === 0);
+                    break;
+                default:
+                    filteredData = authorsData;
+            }
+            
+            renderTable(filteredData);
+            updateAuthorCount(filteredData.length);
+        }
+
+        // تطبيق الترتيب
+        function applySorting(sortBy) {
+            let sortedData = [...authorsData];
+            
+            switch(sortBy) {
+                case 'name-asc':
+                    sortedData.sort((a, b) => (a.AuthorName || '').localeCompare(b.AuthorName || ''));
+                    break;
+                case 'name-desc':
+                    sortedData.sort((a, b) => (b.AuthorName || '').localeCompare(a.AuthorName || ''));
+                    break;
+                case 'books-desc':
+                    sortedData.sort((a, b) => (b.BooksCount || 0) - (a.BooksCount || 0));
+                    break;
+                case 'books-asc':
+                    sortedData.sort((a, b) => (a.BooksCount || 0) - (b.BooksCount || 0));
+                    break;
+                case 'age-asc':
+                    sortedData.sort((a, b) => (a.AuthorAge || 0) - (b.AuthorAge || 0));
+                    break;
+                case 'age-desc':
+                    sortedData.sort((a, b) => (b.AuthorAge || 0) - (a.AuthorAge || 0));
+                    break;
+            }
+            
+            renderTable(sortedData);
+            updateAuthorCount(sortedData.length);
+        }
+
+        // تطبيق البحث
+        function applySearch(searchTerm) {
+            if (!searchTerm.trim()) {
+                applyFilter('all');
+                return;
+            }
+            
+            const term = searchTerm.toLowerCase();
+            const filteredData = authorsData.filter(author => {
+                return (author.AuthorName || '').toLowerCase().includes(term) ||
+                       (author.AuthorEmail || '').toLowerCase().includes(term) ||
+                       (author.AuthorPhone || '').includes(term);
+            });
+            
+            renderTable(filteredData);
+            updateAuthorCount(filteredData.length);
+        }
+
+        // رسم الجدول
+        function renderTable(data) {
+            const tbody = document.getElementById('authorsTableBody');
+            if (!tbody) return;
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="bi bi-person-x display-4"></i>
+                            <p class="mt-2">No authors found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            data.forEach(author => {
+                const row = createAuthorRow(author);
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // إنشاء صف المؤلف
+        function createAuthorRow(author) {
+            const editButton = canEdit ?
+                `<a href="/Author/Edit/${author.Id}" class="btn btn-sm btn-success" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                </a>` : '';
+
+            const deleteButton = canDelete ?
+                `<button type="button" class="btn btn-sm btn-danger" onclick="deleteAuthor(${author.Id})" title="Delete">
+                    <i class="bi bi-trash"></i>
+                </button>` : '';
+
+            return `
+                <tr data-author-id="${author.Id}" class="author-row" data-books-count="${author.BooksCount || 0}">
+                    <td class="author-name">
+                        <strong>${escapeHtml(author.AuthorName || '')}</strong>
+                    </td>
+                    <td class="author-email">${escapeHtml(author.AuthorEmail || '')}</td>
+                    <td class="author-phone d-none d-md-table-cell">${escapeHtml(author.AuthorPhone || '')}</td>
+                    <td class="author-age d-none d-lg-table-cell">${author.AuthorAge || ''}</td>
+                    <td class="books-count">
+                        ${(author.BooksCount || 0) > 0 ?
+                            `<span class="badge bg-success">${author.BooksCount}</span>` :
+                            `<span class="badge bg-secondary">0</span>`
+                        }
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="showAuthorDetailsModal(${author.Id})" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        ${editButton}
+                        ${deleteButton}
+                    </td>
+                </tr>
+            `;
+        }
+
+        // تحديد الزر النشط
+        function setActiveFilterButton(activeBtn) {
+            document.querySelectorAll('[data-filter]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            activeBtn.classList.add('active');
+        }
+
+        // تحديث عداد المؤلفين
+        function updateAuthorCount(count) {
+            const countElement = document.getElementById('authorCount');
+            if (countElement) {
+                countElement.innerHTML = `Total Authors: <span class="fw-bold">${count}</span>`;
+            }
+        }
+
+        // عرض تفاصيل المؤلف (بسيط بدون AJAX)
+        function showAuthorDetailsModal(authorId) {
+            const author = authorsData.find(a => a.Id === authorId);
+            if (!author) {
+                alert('Author not found!');
+                return;
+            }
+
+            const modalContent = `
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="bi bi-person-fill"></i> Personal Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless">
+                                        <tr><td><strong>Name:</strong></td><td>${escapeHtml(author.AuthorName || 'N/A')}</td></tr>
+                                        <tr><td><strong>Email:</strong></td><td>${escapeHtml(author.AuthorEmail || 'Not provided')}</td></tr>
+                                        <tr><td><strong>Phone:</strong></td><td>${escapeHtml(author.AuthorPhone || 'Not provided')}</td></tr>
+                                        <tr><td><strong>Age:</strong></td><td>${author.AuthorAge || 'N/A'} years</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-journals"></i> Published Books 
+                                        <span class="badge bg-light text-dark ms-2">${author.BooksCount || 0}</span>
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    ${author.BooksCount > 0 ? 
+                                        '<p>This author has published books. <a href="/Author/Details/' + author.Id + '" class="btn btn-sm btn-primary">View Details</a></p>' :
+                                        '<div class="alert alert-info"><i class="bi bi-info-circle"></i> This author has not published any books yet.</div>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('authorDetailsContent').innerHTML = modalContent;
+            const modal = new bootstrap.Modal(document.getElementById('authorDetailsModal'));
+            modal.show();
+        }
+
+        // حذف مؤلف (بدون AJAX)
+        function deleteAuthor(authorId) {
+            if (!confirm('Are you sure you want to delete this author?')) {
+                return;
+            }
+            // إعادة توجيه للصفحة التقليدية للحذف
+            window.location.href = `/Author/Delete/${authorId}`;
+        }
+
+        // دوال مساعدة
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func.apply(this, args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Custom styles
+        const customStyles = `
+            <style>
+                #advancedFeatures { transition: all 0.3s ease; }
+                #toggleFeaturesBtn { transition: all 0.2s ease; }
+                #toggleFeaturesBtn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+                .table tbody tr { transition: background-color 0.2s ease; }
+                .table tbody tr:hover { background-color: rgba(0,123,255,0.1) !important; }
+                .btn { transition: all 0.2s ease; }
+                .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                .modal-content { border-radius: 10px; }
+                .card { transition: transform 0.2s ease; }
+                .card:hover { transform: translateY(-2px); }
+            </style>
+        `;
+        document.head.insertAdjacentHTML('beforeend', customStyles);
+    </script>
+}

@@ -1,0 +1,391 @@
+﻿@model WebApplication1.Models.Item
+@{
+    ViewData["Title"] = "Book Details";
+}
+
+<div class="container p-3">
+    <div class="row pt-4">
+        <div class="col-12">
+            <h2 class="text-primary">Book Details</h2>
+            <hr />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">@Model.Name</h4>
+                    <div class="rating-display">
+                        @if (Model.TotalRatings > 0)
+                        {
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-star-fill"></i> @Model.AverageRating.ToString("0.0") (@Model.TotalRatings reviews)
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">No ratings yet</span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Author:</strong> @Model.Author?.AuthorName</p>
+                            <p><strong>Category:</strong> @Model.Category?.Name</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Created:</strong> @Model.TimeCreated.ToString("dd/MM/yyyy")</p>
+                            <p><strong>Downloads:</strong> <span id="downloadCount" class="badge bg-info">@Model.DownloadCount</span></p>
+                            <p>
+                                <strong>PDF File:</strong>
+                                @if (!string.IsNullOrEmpty(Model.PdfPath))
+                                {
+                                    <span class="text-success">Available</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not uploaded</span>
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating Section for Non-Admin Users -->
+            @if (ViewBag.CanRate == true)
+            {
+                <div class="card mt-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-star"></i> Rate This Book
+                            @if (ViewBag.UserRating != null)
+                            {
+                                <small class="text-muted">(You rated this book)</small>
+                            }
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="ratingForm">
+                            <div class="mb-3">
+                                <label class="form-label">Your Rating:</label>
+                                <div class="rating-stars" id="ratingStars">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <i class="bi bi-star rating-star" data-rating="@i"></i>
+                                    }
+                                </div>
+                                <input type="hidden" id="selectedRating" value="@(ViewBag.UserRating?.Rating ?? 0)" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="ratingComment" class="form-label">Comment (Optional):</label>
+                                <textarea class="form-control" id="ratingComment" rows="3" maxlength="500">@(ViewBag.UserRating?.Comment ?? "")</textarea>
+                                <div class="form-text">Maximum 500 characters</div>
+                            </div>
+                            <button type="button" class="btn btn-warning" onclick="submitRating(@Model.Id)">
+                                <i class="bi bi-star-fill"></i>
+                                @(ViewBag.UserRating != null ? "Update Rating" : "Submit Rating")
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+
+            <!-- Admin Rating Stats -->
+            @if (ViewBag.IsAdmin == true && Model.Ratings != null && Model.Ratings.Any())
+            {
+                <div class="card mt-3">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Rating Statistics (Admin View)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <canvas id="ratingChart" width="300" height="200"></canvas>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Recent Reviews:</h6>
+                                @foreach (var rating in Model.Ratings.OrderByDescending(r => r.CreatedDate).Take(3))
+                                {
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>@rating.User.FirstName @rating.User.LastName</strong>
+                                            <span class="text-warning">
+                                                @for (int i = 0; i < rating.Rating; i++)
+                                                {
+                                                    <i class="bi bi-star-fill"></i>
+                                                }
+                                            </span>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(rating.Comment))
+                                        {
+                                            <small class="text-muted">"@rating.Comment"</small>
+                                        }
+                                        <div><small class="text-muted">@rating.CreatedDate.ToString("dd/MM/yyyy HH:mm")</small></div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5>Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <div class="d-grid gap-2">
+                            @if (!string.IsNullOrEmpty(Model.PdfPath) && User.Identity.IsAuthenticated)
+                            {
+                                <button class="btn btn-success" onclick="downloadPdf(@Model.Id, '@Model.PdfPath')">
+                                    <i class="bi bi-file-pdf"></i> Download PDF
+                                </button>
+                            }
+
+                            @if (User.Identity.IsAuthenticated && (User.IsInRole("Admin") || User.IsInRole("Editor")))
+                            {
+                                <a asp-controller="Items" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                                    <i class="bi bi-pencil"></i> Edit Book
+                                </a>
+                            }
+
+                            <a asp-controller="Author" asp-action="Details" asp-route-id="@Model.AuthorId" class="btn btn-outline-info">
+                                <i class="bi bi-person"></i> View Author
+                            </a>
+
+                            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                            {
+                                <a asp-controller="Items" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Delete Book
+                                </a>
+                            }
+                        </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats Card -->
+            <div class="card mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">Quick Stats</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-primary" id="downloadCountDisplay">@Model.DownloadCount</h4>
+                                <small class="text-muted">Downloads</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-warning" id="ratingCountDisplay">@Model.TotalRatings</h4>
+                            <small class="text-muted">Ratings</small>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <span id="averageRatingDisplay" class="badge bg-warning text-dark fs-6">
+                            @if (Model.TotalRatings > 0)
+                            {
+                                <i class="bi bi-star-fill"></i> 
+                                @Model.AverageRating.ToString("0.0")
+                            }
+                            else
+                            {
+                                <text>No ratings</text>
+                            }
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <a asp-controller="Items" asp-action="Index" class="btn btn-secondary">
+                Back to Books
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Rating functionality
+        $(document).ready(function() {
+            initializeRatingStars();
+
+            @if (ViewBag.IsAdmin == true && Model.Ratings != null && Model.Ratings.Any())
+            {
+                    <text>
+                    initializeRatingChart();
+                    </text>
+            }
+        });
+
+        function initializeRatingStars() {
+            const selectedRating = parseInt($('#selectedRating').val()) || 0;
+            updateStarDisplay(selectedRating);
+
+            $('.rating-star').on('click', function() {
+                const rating = parseInt($(this).data('rating'));
+                $('#selectedRating').val(rating);
+                updateStarDisplay(rating);
+            });
+
+            $('.rating-star').on('mouseenter', function() {
+                const rating = parseInt($(this).data('rating'));
+                updateStarDisplay(rating, true);
+            });
+
+            $('#ratingStars').on('mouseleave', function() {
+                const selectedRating = parseInt($('#selectedRating').val()) || 0;
+                updateStarDisplay(selectedRating);
+            });
+        }
+
+        function updateStarDisplay(rating, isHover = false) {
+            $('.rating-star').each(function(index) {
+                if (index < rating) {
+                    $(this).removeClass('bi-star').addClass('bi-star-fill');
+                    if (isHover) {
+                        $(this).css('color', '#ffc107');
+                    } else {
+                        $(this).css('color', '#ffc107');
+                    }
+                } else {
+                    $(this).removeClass('bi-star-fill').addClass('bi-star');
+                    $(this).css('color', '#6c757d');
+                }
+            });
+        }
+
+        function submitRating(itemId) {
+            const rating = parseInt($('#selectedRating').val());
+            const comment = $('#ratingComment').val();
+
+            if (rating < 1 || rating > 5) {
+                alert('Please select a rating between 1 and 5 stars.');
+                return;
+            }
+
+            $.post('/Items/RateBook', {
+                itemId: itemId,
+                rating: rating,
+                comment: comment
+            })
+            .done(function(response) {
+                if (response.success) {
+                    alert(response.message);
+                    // Update displays
+                    $('#averageRatingDisplay').html('<i class="bi bi-star-fill"></i> ' + response.averageRating);
+                    $('#ratingCountDisplay').text(response.totalRatings);
+                    $('.rating-display .badge').html('<i class="bi bi-star-fill"></i> ' + response.averageRating + ' (' + response.totalRatings + ' reviews)');
+                    location.reload(); // Refresh to show updated data
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            })
+            .fail(function() {
+                alert('An error occurred while submitting your rating.');
+            });
+        }
+
+        function downloadPdf(itemId, pdfPath) {
+            $.post('/Items/DownloadPdf', { itemId: itemId })
+            .done(function(response) {
+                if (response.success) {
+                    // Update download count display
+                    $('#downloadCount').text(response.downloadCount);
+                    $('#downloadCountDisplay').text(response.downloadCount);
+
+                    // Open PDF in new tab
+                    window.open(response.downloadUrl, '_blank');
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            })
+            .fail(function() {
+                alert('An error occurred while downloading the PDF.');
+            });
+        }
+
+        @if (ViewBag.IsAdmin == true && Model.Ratings != null && Model.Ratings.Any())
+        {
+                <text>
+                function initializeRatingChart() {
+                    const ctx = document.getElementById('ratingChart').getContext('2d');
+
+                    // Calculate rating distribution
+                    const ratings = @Html.Raw(Json.Serialize(Model.Ratings.Select(r => r.Rating)));
+                    const ratingCounts = [0, 0, 0, 0, 0]; // For 1-5 stars
+
+                    ratings.forEach(rating => {
+                        ratingCounts[rating - 1]++;
+                    });
+
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['1★', '2★', '3★', '4★', '5★'],
+                            datasets: [{
+                                label: 'Number of Ratings',
+                                data: ratingCounts,
+                                backgroundColor: [
+                                    '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997'
+                                ],
+                                borderColor: [
+                                    '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
+                </text>
+        }
+    </script>
+
+    <style>
+        .rating-stars {
+            font-size: 2rem;
+            color: #ffc107;
+            cursor: pointer;
+        }
+
+        .rating-star {
+            margin-right: 5px;
+            transition: color 0.2s ease;
+        }
+
+            .rating-star:hover {
+                color: #ffc107 !important;
+            }
+
+        #ratingChart {
+            max-height: 200px;
+        }
+    </style>
+}

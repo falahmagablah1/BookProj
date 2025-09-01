@@ -1,0 +1,49 @@
+﻿@model IEnumerable<WebApplication1.Models.Category>
+@{
+    ViewData["Title"] = "Categories";
+}
+<div class="container p-3">
+    <div class="row pt-4">
+        <div class="col-6">
+            <h2 class="text-primary">Categories</h2>
+        </div>
+        <div class="col-6 text-end">
+            <a asp-controller="Category" asp-action="New" class="btn btn-primary">
+                <i class="bi bi-plus"></i> &nbsp; Add New Category
+            </a>
+        </div>
+    </div>
+    @if (TempData["successData"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["successData"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    <table class="table table-bordered table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th>Category Name</th>
+                <th>Items Count</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in Model)
+            {
+                <tr>
+                    <td>@category.Name</td>
+                    <td>@(category.Items?.Count ?? 0)</td>
+                    <td>
+                        <a asp-controller="Category" asp-action="Edit" asp-route-id="@category.Id" class="btn btn-sm btn-success">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a asp-controller="Category" asp-action="Delete" asp-route-id="@category.Id" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,93 @@
+﻿@model WebApplication1.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4><i class="bi bi-person-circle"></i> My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-controller="Account" asp-action="Profile" method="post">
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="FirstName" class="form-label"></label>
+                                    <input asp-for="FirstName" class="form-control" />
+                                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="LastName" class="form-label"></label>
+                                    <input asp-for="LastName" class="form-control" />
+                                    <span asp-validation-for="LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="UserName" class="form-label"></label>
+                            <input asp-for="UserName" class="form-control" readonly />
+                            <div class="form-text">Username cannot be changed</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> Update Profile
+                                </button>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-outline-warning">
+                                    <i class="bi bi-key"></i> Change Password
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- User Role Information -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h6><i class="bi bi-shield-check"></i> Account Information</h6>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>Role:</strong>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <span class="badge bg-danger">Administrator</span>
+                        }
+                        else if (User.IsInRole("Editor"))
+                        {
+                            <span class="badge bg-warning">Content Editor</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info">Standard User</span>
+                        }
+                    </p>
+                    <p><strong>Email Verified:</strong> <span class="badge bg-success">Yes</span></p>
+                    <p><strong>Account Status:</strong> <span class="badge bg-success">Active</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

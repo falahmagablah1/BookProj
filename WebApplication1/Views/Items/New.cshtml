@@ -1,0 +1,404 @@
+﻿@model WebApplication1.ViewModels.ItemVM
+@{
+    ViewData["Title"] = "Add New Book";
+}
+
+<div class="container p-3">
+    <div class="row pt-4">
+        <div class="col-12">
+            <h2 class="text-primary">
+                <i class="bi bi-plus-circle"></i> Add New Book
+            </h2>
+            <hr />
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" asp-controller="Items" asp-action="New" id="newBookForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Book Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Name" class="form-label">
+                                        <i class="bi bi-book"></i> Book Title *
+                                    </label>
+                                    <input asp-for="Name" class="form-control" id="bookNameInput"
+                                           placeholder="Enter the book title..." />
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                    <div id="duplicateMsg" class="form-text text-danger d-none">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        A book with this title already exists for the selected author.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="AuthorId" class="form-label">
+                                        <i class="bi bi-person"></i> Author *
+                                    </label>
+                                    <select asp-for="AuthorId" class="form-select" asp-items="@ViewBag.AuthorList"
+                                            id="authorSelect">
+                                        <option value="0">-- Select an Author --</option>
+                                    </select>
+                                    <span asp-validation-for="AuthorId" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="CategoryId" class="form-label">
+                                        <i class="bi bi-tags"></i> Category *
+                                    </label>
+                                    <select asp-for="CategoryId" class="form-select" asp-items="@ViewBag.CategoryList">
+                                        <option value="0">-- Select a Category --</option>
+                                    </select>
+                                    <span asp-validation-for="CategoryId" class="text-danger"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="PdfFile" class="form-label">
+                                        <i class="bi bi-file-pdf"></i> PDF File
+                                    </label>
+                                    <input asp-for="PdfFile" type="file" class="form-control"
+                                           accept=".pdf" id="pdfFileInput" />
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                            Upload a PDF file (optional). Maximum size: 10MB.
+                                        </small>
+                                    </div>
+                                    <span asp-validation-for="PdfFile" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-info-circle"></i> Instructions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                Fill in all required fields marked with *
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                Choose an appropriate category
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                PDF file is optional but recommended
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                System will check for duplicates automatically
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- File Preview -->
+                <div class="card mt-3" id="filePreviewCard" style="display: none;">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-file-check"></i> File Preview
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="fileInfo">
+                            <!-- File information will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Ready to add this book?</h6>
+                                <small class="text-muted">Make sure all information is correct before saving.</small>
+                            </div>
+                            <div>
+                                <button type="submit" class="btn btn-primary btn-lg" id="btnSubmit">
+                                    <i class="bi bi-check-circle"></i> Save Book
+                                </button>
+                                <a asp-action="Index" class="btn btn-secondary btn-lg ms-2">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <script>
+        $(function () {
+            let duplicateCheckTimeout;
+
+            // File input change handler
+            $('#pdfFileInput').on('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    displayFilePreview(file);
+                } else {
+                    $('#filePreviewCard').hide();
+                }
+            });
+
+            // Display file preview information
+            function displayFilePreview(file) {
+                const fileSize = (file.size / 1024 / 1024).toFixed(2); // Convert to MB
+                const fileName = file.name;
+                const fileType = file.type;
+
+                let fileInfo = `
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="mb-1"><strong>File Name:</strong> ${fileName}</p>
+                            <p class="mb-1"><strong>File Size:</strong> ${fileSize} MB</p>
+                            <p class="mb-1"><strong>File Type:</strong> ${fileType}</p>
+                        </div>
+                    </div>
+                `;
+
+                // Validation messages
+                if (fileSize > 10) {
+                    fileInfo += `
+                        <div class="alert alert-danger mt-2 py-1">
+                            <small><i class="bi bi-exclamation-triangle"></i> File size exceeds 10MB limit</small>
+                        </div>
+                    `;
+                    $('#btnSubmit').prop('disabled', true);
+                } else if (fileType !== 'application/pdf') {
+                    fileInfo += `
+                        <div class="alert alert-warning mt-2 py-1">
+                            <small><i class="bi bi-exclamation-triangle"></i> Only PDF files are recommended</small>
+                        </div>
+                    `;
+                } else {
+                    fileInfo += `
+                        <div class="alert alert-success mt-2 py-1">
+                            <small><i class="bi bi-check-circle"></i> File looks good!</small>
+                        </div>
+                    `;
+                    $('#btnSubmit').prop('disabled', false);
+                }
+
+                $('#fileInfo').html(fileInfo);
+                $('#filePreviewCard').show();
+            }
+
+            // Duplicate checking functionality
+            function runDuplicateCheck() {
+                const name = $('#bookNameInput').val().trim();
+                const authorId = $('#authorSelect').val();
+
+                if (!name || !authorId || authorId === '0') {
+                    $('#duplicateMsg').addClass('d-none');
+                    return;
+                }
+
+                // Clear previous timeout
+                if (duplicateCheckTimeout) {
+                    clearTimeout(duplicateCheckTimeout);
+                }
+
+                // Set new timeout for debouncing
+                duplicateCheckTimeout = setTimeout(() => {
+                    $.post('/Items/CheckDuplicate', {
+                        name: name,
+                        authorId: authorId,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    })
+                    .done(function (res) {
+                        if (res.exists) {
+                            $('#duplicateMsg').removeClass('d-none');
+                            $('#btnSubmit').prop('disabled', true);
+                        } else {
+                            $('#duplicateMsg').addClass('d-none');
+                            $('#btnSubmit').prop('disabled', false);
+                        }
+                    })
+                    .fail(function() {
+                        console.error('Failed to check for duplicates');
+                    });
+                }, 500); // 500ms delay
+            }
+
+            // Bind duplicate check events
+            $('#bookNameInput').on('input blur', runDuplicateCheck);
+            $('#authorSelect').on('change', runDuplicateCheck);
+
+            // Form submission validation
+            $('#newBookForm').on('submit', function(e) {
+                let isValid = true;
+                let errorMessages = [];
+
+                // Check required fields
+                const title = $('#bookNameInput').val().trim();
+                const authorId = $('#authorSelect').val();
+                const categoryId = $('select[name="CategoryId"]').val();
+
+                if (!title) {
+                    errorMessages.push('Book title is required');
+                    isValid = false;
+                }
+
+                if (!authorId || authorId === '0') {
+                    errorMessages.push('Please select an author');
+                    isValid = false;
+                }
+
+                if (!categoryId || categoryId === '0') {
+                    errorMessages.push('Please select a category');
+                    isValid = false;
+                }
+
+                // Check if duplicate exists
+                if (!$('#duplicateMsg').hasClass('d-none')) {
+                    errorMessages.push('This book already exists for the selected author');
+                    isValid = false;
+                }
+
+                // Check file size if file is selected
+                const fileInput = $('#pdfFileInput')[0];
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileSize = file.size / 1024 / 1024; // Convert to MB
+
+                    if (fileSize > 10) {
+                        errorMessages.push('PDF file size must be less than 10MB');
+                        isValid = false;
+                    }
+
+                    if (file.type !== 'application/pdf') {
+                        errorMessages.push('Only PDF files are allowed');
+                        isValid = false;
+                    }
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                    showAlert(errorMessages.join('<br>'), 'danger');
+                    return false;
+                }
+
+                // Show loading state
+                $('#btnSubmit').prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Saving...');
+            });
+
+            // Show alert function
+            function showAlert(message, type = 'info') {
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+
+                // Remove existing alerts
+                $('.alert').not('.form-text').remove();
+
+                // Add new alert at the top
+                $('.container').prepend(alertHtml);
+
+                // Scroll to top
+                $('html, body').animate({ scrollTop: 0 }, 300);
+            }
+
+            // Initialize tooltips
+            $('[title]').tooltip();
+        });
+    </script>
+
+    <style>
+        .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+
+        .btn {
+            transition: all 0.2s ease;
+        }
+
+            .btn:hover {
+                transform: translateY(-1px);
+            }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        #filePreviewCard {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        <style >
+        @@keyframes slideDown {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+    </style>
+
+
+        .list-unstyled li {
+            padding: 0.25rem 0;
+        }
+
+        .alert {
+            border-radius: 8px;
+        }
+
+        .card-header {
+            border-radius: 8px 8px 0 0 !important;
+        }
+    </style>
+}

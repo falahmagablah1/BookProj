@@ -1,0 +1,45 @@
+﻿@model WebApplication1.Models.Author
+@{
+    ViewData["Title"] = "Edit Author";
+}
+<div class="container p-3">
+    <form method="post" asp-controller="Author" asp-action="Edit">
+        <input asp-for="Id" hidden />
+        <div class="border p-3 mt-4">
+            <div class="row pb-2">
+                <h2 class="text-primary">Edit Author</h2>
+                <hr />
+            </div>
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="AuthorName" class="form-label"></label>
+                <input asp-for="AuthorName" class="form-control" />
+                <span asp-validation-for="AuthorName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="AuthorEmail" class="form-label"></label>
+                <input asp-for="AuthorEmail" class="form-control" type="email" />
+                <span asp-validation-for="AuthorEmail" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="AuthorPhone" class="form-label"></label>
+                <input asp-for="AuthorPhone" class="form-control" />
+                <span asp-validation-for="AuthorPhone" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="AuthorAge" class="form-label"></label>
+                <input asp-for="AuthorAge" class="form-control" type="number" min="1" />
+                <span asp-validation-for="AuthorAge" class="text-danger"></span>
+            </div>
+            <br />
+            <hr />
+            <button type="submit" class="btn btn-primary" style="width:150px">Update</button>
+            <a asp-action="Index" asp-controller="Author" class="btn btn-secondary" style="width:150px">
+                Back to Authors
+            </a>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

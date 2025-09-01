@@ -1,0 +1,29 @@
+﻿@model WebApplication1.Models.Category
+@{
+    ViewData["Title"] = "Add New Category";
+}
+<div class="container p-3">
+    <form method="post" asp-controller="Category" asp-action="New">
+        <div class="border p-3 mt-4">
+            <div class="row pb-2">
+                <h2 class="text-primary">Add New Category</h2>
+                <hr />
+            </div>
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <br />
+            <hr />
+            <button type="submit" class="btn btn-primary" style="width:150px">Save</button>
+            <a asp-action="Index" asp-controller="Category" class="btn btn-secondary" style="width:150px">
+                Back to Categories
+            </a>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,70 @@
+﻿@model WebApplication1.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card mt-5">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4><i class="bi bi-box-arrow-in-right"></i> Login</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-controller="Account" asp-action="Login" method="post">
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" placeholder="Enter your email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label"></label>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr />
+
+                    <div class="text-center">
+                        <p class="mb-2">Don't have an account?</p>
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-outline-secondary">
+                            <i class="bi bi-person-plus"></i> Register
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo credentials info -->
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h6><i class="bi bi-info-circle"></i> Demo Credentials</h6>
+                </div>
+                <div class="card-body">
+                    <small>
+                        <strong>Admin:</strong> admin@bookmanagement.com / Admin123!<br>
+                        <strong>Editor:</strong> editor@bookmanagement.com / Editor123!
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
