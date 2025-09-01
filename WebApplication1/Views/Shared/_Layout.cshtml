@@ -111,14 +111,6 @@
                         }
                         else
                         {
-                            <li>
-                                <form asp-controller="Account" asp-action="Logout" method="post" style="display: inline;">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
-                                        <i class="bi bi-box-arrow-right"></i> Logout
-                                    </button>
-                                </form>
-                            </li>
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">
                                     <i class="bi bi-box-arrow-in-right"></i> Login
